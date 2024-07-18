@@ -5,7 +5,13 @@ using System.Text;
 
 namespace hookset_server.JWTManager
 {
-    public class JWTManager
+    public interface IJWTManager
+    {
+        public string Authenticate(string username, string password);
+
+    }
+
+    public class JWTManager: IJWTManager
     {
 
         private readonly IConfiguration _configuration;

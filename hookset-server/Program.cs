@@ -1,3 +1,6 @@
+using hookset_server.DBHelpers;
+using hookset_server.JWTManager;
+using hookset_server.models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
@@ -19,6 +22,10 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
     };
 });
 
+builder.Services.AddSingleton<DapperContext>();
+builder.Services.AddScoped<IUserDBHelper, UserDBHelper>();
+builder.Services.AddScoped<IJWTManager, JWTManager>();
+builder.Services.AddScoped<SaltManager>();
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();

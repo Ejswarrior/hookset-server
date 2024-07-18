@@ -5,7 +5,7 @@ using System.Text;
 
 namespace hookset_server.JWTManager
 {
-    public class Salt
+    public class SaltManager
     {
         public string saltPassword(string password)
         {
