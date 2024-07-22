@@ -48,17 +48,14 @@ namespace hookset_server.Controllers
         {
 
             var duplicateUser = await userDBHelper.getUser(email);
-            Console.WriteLine("Hit after get user");
 
             if (duplicateUser != null) return StatusCode(400, "User already exists");
-
             try
             {
-                Console.WriteLine("Hit inside try");
                 var hashedPassword = _salt.saltPassword(password);
-                var createdUser = userDBHelper.createUser(new UserCreateDTO { email = email, password = password, firstName = firstName, lastName = lastName });
+                var createdUser = await userDBHelper.createUser(new UserCreateDTO { email = email, password = password, firstName = firstName, lastName = lastName });
                 if (createdUser == null) return StatusCode(500, "Error creating user");
-
+                Console.WriteLine($"{createdUser.Id}");
                 var token = jWTManager.Authenticate(email, password);
 
                 return Ok(token);

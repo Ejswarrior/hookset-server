@@ -8,7 +8,7 @@ namespace hookset_server.DBHelpers
 {
     public interface IUserDBHelper
     {
-        public Task<User> getUser(string username);
+        public Task<User?> getUser(string username);
         public Task<User> createUser(UserCreateDTO userCreate);
     }
 
@@ -32,35 +32,33 @@ namespace hookset_server.DBHelpers
             _dapperContext = dapperContext;
         }
 
-        async public Task<User> getUser(string email)
+        async public Task<User?> getUser(string email)
         {
-            var query = "SELECT * FROM User WHERE Email = @Email";
+            var query = "SELECT * FROM HooksetUser WHERE Email = @Email;";
 
 
             using (var connection = _dapperContext.createConnection())
             {
                 Console.WriteLine("Connected");
                 var user = await connection.QuerySingleOrDefaultAsync<User>(query, new {  email });
+                if (user == null)
+                {
+                    Console.WriteLine("No User");
+                }
                 return user;
             }
         }
 
         async public Task<User> createUser(UserCreateDTO userCreate)
         {
-            var query = "INSERT INTO User (Email, Password, FirstName, LastName) VALUES (@Email, @Password, @FirstName, @LastName)" + "SELECT CAST(SCOPE_IDENTITY() as int)";
-
-            var parameters = new DynamicParameters();
-            parameters.Add("Email", userCreate.email);
-            parameters.Add("Password", userCreate.password);
-            parameters.Add("FirstName", userCreate.firstName);
-            parameters.Add("LastName", userCreate.lastName);
+            var createUserQuery = "INSERT INTO HooksetUser (Id,Email,Password,FirstName,LastName) VALUES (@Id, @Email, @Password, @FirstName, @LastName);";
 
             using (var connection = _dapperContext.createConnection())
             {
-                var id = await connection.QuerySingleAsync<int>(query, parameters);
+                var id = await connection.QueryAsync(createUserQuery, new { Id = Guid.NewGuid(),  Email = userCreate.email, Password = userCreate.password, FirstName = userCreate.firstName, LastName = userCreate.lastName });
                 var user = new User
                 {
-                    Id = id,
+                    Id = 1,
                     email = userCreate.email,
                     password = userCreate.password,
                     firstName = userCreate.firstName,
