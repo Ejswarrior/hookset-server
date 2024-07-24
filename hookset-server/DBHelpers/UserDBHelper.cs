@@ -8,7 +8,7 @@ namespace hookset_server.DBHelpers
 {
     public interface IUserDBHelper
     {
-        public Task<User?> getUser(string username);
+        public Task<User?> getUser(string? username, int? userId);
         public Task<User> createUser(UserCreateDTO userCreate);
     }
 
@@ -32,15 +32,15 @@ namespace hookset_server.DBHelpers
             _dapperContext = dapperContext;
         }
 
-        async public Task<User?> getUser(string email)
+        async public Task<User?> getUser(string? email = null, int? userId = null)
         {
-            var query = "SELECT * FROM HooksetUser WHERE Email = @Email;";
+            var query = email != null ? "SELECT * FROM HooksetUser WHERE Email = @Email;" : "SELECT * FROM HooksetUser WHERE ID = @userId;";
 
 
             using (var connection = _dapperContext.createConnection())
             {
                 Console.WriteLine("Connected");
-                var user = await connection.QuerySingleOrDefaultAsync<User>(query, new {  email });
+                var user = await connection.QuerySingleOrDefaultAsync<User>(query, email != null? new {  email } : new { userId });
                 if (user == null)
                 {
                     Console.WriteLine("No User");

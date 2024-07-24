@@ -28,13 +28,13 @@ namespace hookset_server.Controllers
         [Route("/login")]
         public async Task<ActionResult> Login(string email, string password)
         {
-            var authenticatedUser = await userDBHelper.getUser(email);
+            var authenticatedUser = await userDBHelper.getUser(email, null);
             
-            if(authenticatedUser == null) return StatusCode(500, "Invalid Credentials");
+            if(authenticatedUser == null) return StatusCode(403, "Invalid Credentials");
            
             var encrytedPassword = _salt.verifiySalt(password, authenticatedUser.password);
 
-            if (!encrytedPassword) return StatusCode(500, "Invalid Credentials");
+            if (!encrytedPassword) return StatusCode(403, "Invalid Credentials");
 
             var token = jWTManager.Authenticate(email, password);
             
