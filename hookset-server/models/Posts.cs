@@ -16,7 +16,7 @@ namespace hookset_server.models
 
     public class insertPostDTO
     {
-        public int userId { get; set; }
+        public Guid userId { get; set; }
         public DateTime createdDate { get; set; }
         public int likes { get; set; }
 
@@ -34,8 +34,8 @@ namespace hookset_server.models
 
     public class Posts
     {
-        public int Id { get; set; }
-        public int userId { get; set; }
+        public Guid Id { get; set; }
+        public Guid userId { get; set; }
         public DateTime createdDate { get; set; }
         public int likes { get; set; }
 

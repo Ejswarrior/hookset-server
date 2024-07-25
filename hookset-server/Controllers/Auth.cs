@@ -44,16 +44,16 @@ namespace hookset_server.Controllers
         [HttpPost]
         [Route("/create-acount")]
 
-        public async Task<ActionResult> CreateAccount(string email, string password, string firstName, string lastName)
+        public async Task<ActionResult> CreateAccount(string email, string password, string firstName, string lastName, string userName)
         {
 
-            var duplicateUser = await userDBHelper.getUser(email);
+            var duplicateUser = await userDBHelper.getUser(email, null);
 
             if (duplicateUser != null) return StatusCode(400, "User already exists");
             try
             {
                 var hashedPassword = _salt.saltPassword(password);
-                var createdUser = await userDBHelper.createUser(new UserCreateDTO { email = email, password = password, firstName = firstName, lastName = lastName });
+                var createdUser = await userDBHelper.createUser(new UserCreateDTO { email = email, password = password, firstName = firstName, lastName = lastName, userName = userName });
                 if (createdUser == null) return StatusCode(500, "Error creating user");
                 Console.WriteLine($"{createdUser.Id}");
                 var token = jWTManager.Authenticate(email, password);

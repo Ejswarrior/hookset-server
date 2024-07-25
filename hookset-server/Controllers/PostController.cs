@@ -19,12 +19,13 @@ namespace hookset_server.Controllers
             this.userDBHelper = userDBHelper;
             this._postsDBHelper = postsDBHelper;
         }
-        public async Task<ActionResult<Posts>> createPost(int userId, createPostDTO postCreationObj)
+        [HttpPost]
+        public async Task<ActionResult<Posts>> createPost(Guid userId, createPostDTO postCreationObj)
         {
             var user = await userDBHelper.getUser(null, userId);
 
             if (user == null) return StatusCode(403, "Not Authorized");
-
+            Console.Write(user.Id);
             var newPost = new insertPostDTO
             {
                 userId = user.Id,
@@ -33,12 +34,16 @@ namespace hookset_server.Controllers
                 createdDate = DateTime.Now,
                 description = postCreationObj.description,
                 bodyOfWaterCaughtIn = postCreationObj.bodyOfWaterCaughtIn,
-                weight = postCreationObj.weight != null ? postCreationObj.weight : null,
-                length = postCreationObj.length != null ? postCreationObj.length : null,
+                weight =  0,
+                length = 0,
                 fishSpecies = postCreationObj.fishSpecies,
             };
 
             var post = await _postsDBHelper.insertPost(newPost);
+
+            if (post == null) return StatusCode(500, "Error creating post");
+
+            return Ok(post);
         }
     }
 }
