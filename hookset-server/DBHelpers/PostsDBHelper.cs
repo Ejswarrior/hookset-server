@@ -8,7 +8,7 @@ namespace hookset_server.DBHelpers
     public interface IPostsDBHelper
     {
         public Task<Posts?> insertPost(insertPostDTO postObj);
-        public Task<List<Posts>> listPosts(int? pageStart, int? perPage, Guid? userId, bool? follower);
+        public Task<List<PostDTO>> listPosts(int? pageStart, int? perPage, Guid? userId, bool? follower);
         public Task<Posts?> getPost(Guid userId);
     }
     public class PostsDBHelper: IPostsDBHelper
@@ -65,7 +65,7 @@ namespace hookset_server.DBHelpers
             }
         }
 
-        public async Task<List<Posts>> listPosts(int? pageStart, int? perPage, Guid? userId, bool? followers)
+        public async Task<List<PostDTO>> listPosts(int? pageStart, int? perPage, Guid? userId, bool? followers)
         {
             var listPostQuery = "SELECT * FROM Posts";
             
@@ -79,29 +79,41 @@ namespace hookset_server.DBHelpers
             using (var connection = _dapperContext.createConnection())
             {
                 var posts = await connection.QueryAsync<Posts>(listPostQuery, new {UserId  = userId});
+                List<PostDTO> postDTOs = new List<PostDTO>();
+                if (posts.Count() == 0) return [];
 
-                if(posts != null)
+                if (posts != null)
                 {
                     foreach (var post in posts)
                     {
-                        var commentsQuery = "SELECT * FROM Comments WHERE PostId = @PostId";
-                        var likesQuery = "SELECT Count(*) FROM Likes WHERE PostId = @PostId";
+                        if (post != null)
+                        {
+                            var commentsQuery = "SELECT * FROM Comments WHERE PostId = @PostId";
+                            var likesQuery = "SELECT Count(*) FROM Likes WHERE PostId = @PostId";
 
-                        var postComments = await connection.QueryAsync<Comments>(commentsQuery, new { PostId = post.Id });
-                        var postLikes = await connection.QueryAsync<int>(likesQuery, new { PostId = post.Id });
+                            var postComments = await connection.QueryAsync<Comments>(commentsQuery, new { PostId = post.Id });
+                            var postLikes = await connection.QuerySingleAsync<int>(likesQuery, new { PostId = post.Id });
 
-                        return new {
-                            ...post,
-                            likes: postLikes
-                            comments: postComments,
+                            var postDto = new PostDTO
+                            {
+                                Id = post.Id,
+                                userId = post.userId,
+                                userName = post.userName,
+                                fishSpecies = post.fishSpecies,
+                                description = post.description,
+                                length = post.length,
+                                weight = post.weight,
+                                createdDate = post.createdDate,
+                                updatedDate = post.updatedDate,
+                                likes = postLikes,
+                                comments = postComments != null ? postComments.ToList() : [],
+                            };
+
+                            postDTOs.Add(postDto);
                         }
-
                     }
                 }
-        
-
-                if (posts.Count() == 0) return [];
-                return posts.ToList();
+                return postDTOs;
             }
         }
     }

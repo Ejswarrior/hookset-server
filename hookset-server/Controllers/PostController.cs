@@ -48,7 +48,7 @@ namespace hookset_server.Controllers
         }
 
         [HttpGet("list-posts")]
-        public async Task<ActionResult<Posts>> listPosts(Guid? userId, int? perPage, int? page)
+        public async Task<ActionResult<PostDTO>> listPosts(Guid? userId, int? perPage, int? page)
         {
             if(userId == null && perPage == null && page == null || perPage != null && page == null || page != null && perPage == null) return StatusCode(500, "Invalid search paramaters");
 
