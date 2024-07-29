@@ -3,6 +3,7 @@ using hookset_server.JWTManager;
 using hookset_server.models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Hosting;
 
 namespace hookset_server.Controllers
 {
@@ -45,5 +46,34 @@ namespace hookset_server.Controllers
 
             return Ok(post);
         }
+
+        [HttpGet("list-posts")]
+        public async Task<ActionResult<Posts>> listPosts(Guid? userId, int? perPage, int? page)
+        {
+            if(userId == null && perPage == null && page == null || perPage != null && page == null || page != null && perPage == null) return StatusCode(500, "Invalid search paramaters");
+
+            var posts = await _postsDBHelper.listPosts(page, perPage, userId, false);
+            if (posts == null) return StatusCode(404, "No posts found");
+
+            return Ok(posts);
+        }
+
+        [HttpGet("post")]
+        public async Task<ActionResult<Posts>> getPost(Guid userId)
+        {
+            try
+            {
+                var post = await _postsDBHelper.getPost(userId);
+                if (post == null) return StatusCode(404, "Post not found");
+                return Ok(post);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+  
+        }
+
+
     }
 }

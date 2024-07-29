@@ -1,12 +1,15 @@
 ﻿using Dapper;
 using hookset_server.models;
 using Newtonsoft.Json;
+using System.Collections;
 
 namespace hookset_server.DBHelpers
 {   
     public interface IPostsDBHelper
     {
         public Task<Posts?> insertPost(insertPostDTO postObj);
+        public Task<List<Posts>> listPosts(int? pageStart, int? perPage, Guid? userId, bool? follower);
+        public Task<Posts?> getPost(Guid userId);
     }
     public class PostsDBHelper: IPostsDBHelper
     {
@@ -49,6 +52,37 @@ namespace hookset_server.DBHelpers
                 return createdPost;
             }
 
+        }
+
+        public async Task<Posts?> getPost(Guid userId)
+        {
+            var getPostQuery = "SELECT * FROM Posts Where UserId = @UserId;";
+            using (var connection = _dapperContext.createConnection())
+            {
+                var post = await connection.QueryFirstOrDefaultAsync<Posts>(getPostQuery);
+
+                return post;
+            }
+        }
+
+        public async Task<List<Posts>> listPosts(int? pageStart, int? perPage, Guid? userId, bool? followers)
+        {
+            var listPostQuery = "SELECT * FROM Posts";
+            
+            if (userId != null) listPostQuery += " WHERE UserId = @UserId";
+
+            if (pageStart != null && perPage != null && pageStart != 0) listPostQuery = $" OFFSET {perPage} * {pageStart} ROWS FETCH {perPage} ROWS ONLY";
+
+            listPostQuery += " ORDER BY CreatedDate DESC";
+            listPostQuery += ";";
+            //todo: create better configuration for pulling different lists of posts
+            using (var connection = _dapperContext.createConnection())
+            {
+                var posts = await connection.QueryAsync<Posts>(listPostQuery, new {Userid  = userId});
+
+                if (posts.Count() == 0) return [];
+                return posts.ToList();
+            }
         }
     }
 }
