@@ -78,7 +78,27 @@ namespace hookset_server.DBHelpers
             //todo: create better configuration for pulling different lists of posts
             using (var connection = _dapperContext.createConnection())
             {
-                var posts = await connection.QueryAsync<Posts>(listPostQuery, new {Userid  = userId});
+                var posts = await connection.QueryAsync<Posts>(listPostQuery, new {UserId  = userId});
+
+                if(posts != null)
+                {
+                    foreach (var post in posts)
+                    {
+                        var commentsQuery = "SELECT * FROM Comments WHERE PostId = @PostId";
+                        var likesQuery = "SELECT Count(*) FROM Likes WHERE PostId = @PostId";
+
+                        var postComments = await connection.QueryAsync<Comments>(commentsQuery, new { PostId = post.Id });
+                        var postLikes = await connection.QueryAsync<int>(likesQuery, new { PostId = post.Id });
+
+                        return new {
+                            ...post,
+                            likes: postLikes
+                            comments: postComments,
+                        }
+
+                    }
+                }
+        
 
                 if (posts.Count() == 0) return [];
                 return posts.ToList();
