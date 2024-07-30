@@ -4,6 +4,9 @@ using Newtonsoft.Json;
 using System.Collections;
 using System.Text;
 using System.Xml.Linq;
+using System.Text.Json;
+using Microsoft.Extensions.Hosting;
+
 
 namespace hookset_server.DBHelpers
 {   
@@ -11,21 +14,21 @@ namespace hookset_server.DBHelpers
     {
         public Task<Posts?> insertPost(insertPostDTO postObj);
         public Task<List<PostDTO>> listPosts(Guid userId, int? pageStart, int? perPage, bool? follower);
-        public Task<PostDTO?> getPost(Guid userId);
+        public Task<PostDTO?> getPost(Guid postId);
         public Task<String> constructListQuery(System.Data.IDbConnection connection, Guid userId, int? pageStart, int? perPage, bool? followers);
-        public  Task<Comments?> insertComment(Comments comment);
-        public PostDTO ConvertToPostDTO(Posts postObj, List<Comments> comments, int Likes);
+        public PostDTO ConvertToPostDTO(Posts postObj, List<CommentDTO> comments, int Likes);
         public  Task<Likes?> insertLike(Likes like);
     }
     public class PostsDBHelper: IPostsDBHelper
     {
         private readonly DapperContext _dapperContext;
-        private readonly String commentsQuery = "SELECT * FROM Comments WHERE PostId = @PostId";
+        private readonly ICommentsDBHelper _commentsDBHelper;
         private readonly String likesQuery = "SELECT Count(*) FROM Likes WHERE PostId = @PostId";
 
-        public PostsDBHelper(DapperContext dapperContext)
+        public PostsDBHelper(DapperContext dapperContext, ICommentsDBHelper commentsDBHelper)
         {
             _dapperContext = dapperContext;
+            _commentsDBHelper = commentsDBHelper;
         }
 
         public Posts ConvertToPost(Guid id, insertPostDTO postObj)
@@ -44,7 +47,7 @@ namespace hookset_server.DBHelpers
             };
         }
 
-        public PostDTO ConvertToPostDTO(Posts postObj, List<Comments> comments, int Likes) {
+        public PostDTO ConvertToPostDTO(Posts postObj, List<CommentDTO> comments, int Likes) {
             return new PostDTO
             {
                 Id = postObj.Id,
@@ -79,15 +82,16 @@ namespace hookset_server.DBHelpers
 
         }
 
+
         public async Task<PostDTO?> getPost(Guid postId)
         {
-            var getPostQuery = "SELECT * FROM Posts Where PostId = @PostId;";
+            var getPostQuery = "SELECT * FROM Posts WHERE Id = @PostId;";
             using (var connection = _dapperContext.createConnection())
             {
                 var post = await connection.QueryFirstOrDefaultAsync<Posts>(getPostQuery, new { PostId = postId});
                 if (post == null) return null;
 
-                var postComments = await connection.QueryAsync<Comments>(commentsQuery, new { PostId = post.Id });
+                var postComments = await _commentsDBHelper.getPostComments(postId, connection);
                 var postLikes = await connection.QuerySingleAsync<int>(likesQuery, new { PostId = post.Id });
                 return ConvertToPostDTO(post, postComments.ToList(), postLikes);
             }
@@ -104,7 +108,7 @@ namespace hookset_server.DBHelpers
                 var followingIds = await connection.QueryAsync<UserRelationships>("Select DISTINCT UserTwoId FROM Followers WHERE UserId = @UserId & UserOneFollowUserTwo = 1");
                 listPostQuery += " Where UserId IN @Ids";
             }
-            if (pageStart != null && perPage != null && pageStart != 0) listPostQuery += $"  DESC OFFSET @perPage * @pageStart ROWS FETCH NEXT @perPage ROWS ONLY";
+            if (pageStart != null && perPage != null && pageStart != 0) listPostQuery += $" ORDER BY CreatedDate DESC OFFSET @perPage * @pageStart ROWS FETCH NEXT @perPage ROWS ONLY";
             if (pageStart == null || perPage == null || pageStart == 0) listPostQuery += " ORDER BY CreatedDate DESC";
             listPostQuery += ";";
             return listPostQuery;
@@ -129,8 +133,9 @@ namespace hookset_server.DBHelpers
                     {
                         if (post != null)
                         {
-                            var postComments = await connection.QueryAsync<Comments>(commentsQuery, new { PostId = post.Id });
+                            var postComments = await _commentsDBHelper.getPostComments(post.Id, connection);
                             var postLikes = await connection.QuerySingleAsync<int>(likesQuery, new { PostId = post.Id });
+                            Console.Write(JsonConvert.SerializeObject(postComments));
 
                             var postDto = ConvertToPostDTO(post, postComments.ToList(), postLikes);
 
@@ -143,25 +148,19 @@ namespace hookset_server.DBHelpers
         }
 
 
-        public async Task<Comments?> insertComment(Comments comment)
-        {
-            var insertCommentQuery = "INSERT into Comments (Id, UserId, PostId, Comment) VALUES (@Id, @UserId, @PostId, @Comment);";
-
-            using (var connection = _dapperContext.createConnection())
-            {
-                var commentQuery = await connection.QuerySingleOrDefaultAsync<Comments>(insertCommentQuery, new {Id = comment.Id, PostId = comment.PostId, UserId = comment.UserId, Comment = comment.comment});
-                if (commentQuery == null) return null;
-                return comment;
-            }
-
-        }
-
         public async Task<Likes?> insertLike(Likes like)
         {
             var insertLikeQuery = "INSERT into Likes (Id, UserId, PostId) VALUES (@Id, @UserId, @PostId);";
+            var deleteLikeQuery = "DELETE FROM Likes WHERE UserId = @UserId AND PostId = @PostId;";
             using (var connection = _dapperContext.createConnection())
             {
-                var likeQuery = await connection.QuerySingleOrDefaultAsync<Likes>(insertLikeQuery, new {Id = like.Id, PostId = like.PostId, UserId = like.UserId});
+                var findLikeQuery = "SELECT * FROM Likes WHERE UserId = @UserId AND PostId = @PostId;";
+                var basicQueryParams = new { UserId = like.UserId, PostId = like.PostId };
+                var insertQueryParams = new { Id = like.Id, PostId = like.PostId, UserId = like.UserId };
+
+                var existingLike = await connection.QuerySingleOrDefaultAsync<Likes>(findLikeQuery, basicQueryParams);
+                var likeUpdateQuery = existingLike != null ? insertLikeQuery : deleteLikeQuery;
+                var likeQuery = await connection.QuerySingleOrDefaultAsync<Likes>(insertLikeQuery, existingLike != null ? insertQueryParams : basicQueryParams);
                 if (likeQuery == null) return null;
                 return like;
             }

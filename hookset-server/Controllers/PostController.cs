@@ -14,12 +14,14 @@ namespace hookset_server.Controllers
     {
         private readonly IUserDBHelper userDBHelper;
         private readonly IPostsDBHelper _postsDBHelper;
+        private readonly ICommentsDBHelper _commentsDBHelper;
 
 
-        public PostController( IUserDBHelper userDBHelper, IPostsDBHelper postsDBHelper)
+        public PostController( IUserDBHelper userDBHelper, IPostsDBHelper postsDBHelper, ICommentsDBHelper commentsDBHelper)
         {
             this.userDBHelper = userDBHelper;
             this._postsDBHelper = postsDBHelper;
+            this._commentsDBHelper = commentsDBHelper;
         }
         [HttpPost]
         public async Task<ActionResult<Posts>> createPost(Guid userId, createPostDTO postCreationObj)
@@ -74,10 +76,10 @@ namespace hookset_server.Controllers
   
         }
 
-        [HttpPost]
-
+        [HttpPut("{postId}")]
         public async Task<ActionResult<PostDTO>> updatePost(Guid postId, String? comment, Boolean like)
         {
+            if (comment != null && comment.Length > 250) return BadRequest("Comment is too long");
             var post = await _postsDBHelper.getPost(postId);
 
             if (post == null) return BadRequest();
@@ -92,10 +94,10 @@ namespace hookset_server.Controllers
                     comment = comment,
                 };
 
-                var createdComment = await _postsDBHelper.insertComment(commentDTO);
+                var createdComment = await _commentsDBHelper.insertComment(commentDTO);
                 if (createdComment == null) return NotFound();
-                Comments[] newComments = [.. post.comments, createdComment];
-                post.comments = newComments.ToList();
+                var postComments = await _commentsDBHelper.getPostComments(postId, null);
+                post.comments = postComments.ToList();
                 return Ok(post);
             }
 
@@ -109,10 +111,8 @@ namespace hookset_server.Controllers
                 };
 
                 var createdLike = await _postsDBHelper.insertLike(likeDTO);
-
-                if (createdLike == null) return NotFound();
-
-                post.likes += 1;
+                if (createdLike != null) post.likes += 1;
+                else post.likes -= 1;
                 return Ok(post);
             }
 

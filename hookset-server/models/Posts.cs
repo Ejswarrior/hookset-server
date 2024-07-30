@@ -69,7 +69,6 @@ namespace hookset_server.models
         public string fishSpecies { get; set; }
         public int? weight { get; set; }
         public int? length { get; set; }
-        public List<Comments> comments { get; set; }
+        public List<CommentDTO> comments { get; set; }
     }
-
 }
