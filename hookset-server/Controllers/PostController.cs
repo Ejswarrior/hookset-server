@@ -4,6 +4,7 @@ using hookset_server.models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Hosting;
+using Swashbuckle.AspNetCore.SwaggerGen;
 
 namespace hookset_server.Controllers
 {
@@ -48,22 +49,21 @@ namespace hookset_server.Controllers
         }
 
         [HttpGet("list-posts")]
-        public async Task<ActionResult<PostDTO>> listPosts(Guid? userId, int? perPage, int? page)
+        public async Task<ActionResult<PostDTO>> listPosts(Guid userId, int? perPage, int? page)
         {
-            if(userId == null && perPage == null && page == null || perPage != null && page == null || page != null && perPage == null) return StatusCode(500, "Invalid search paramaters");
-
-            var posts = await _postsDBHelper.listPosts(page, perPage, userId, false);
+            if (perPage > 100) return StatusCode(500, "Too many items perPage requested");
+            var posts = await _postsDBHelper.listPosts(userId, page, perPage, false);
             if (posts == null) return StatusCode(404, "No posts found");
-
+             
             return Ok(posts);
         }
 
         [HttpGet("post")]
-        public async Task<ActionResult<Posts>> getPost(Guid userId)
+        public async Task<ActionResult<PostDTO>> getPost(Guid postId)
         {
             try
             {
-                var post = await _postsDBHelper.getPost(userId);
+                var post = await _postsDBHelper.getPost(postId);
                 if (post == null) return StatusCode(404, "Post not found");
                 return Ok(post);
             }
@@ -72,6 +72,52 @@ namespace hookset_server.Controllers
                 return BadRequest(ex.Message);
             }
   
+        }
+
+        [HttpPost]
+
+        public async Task<ActionResult<PostDTO>> updatePost(Guid postId, String? comment, Boolean like)
+        {
+            var post = await _postsDBHelper.getPost(postId);
+
+            if (post == null) return BadRequest();
+
+            if (comment != null)
+            {
+                var commentDTO = new Comments
+                {
+                    Id = Guid.NewGuid(),
+                    UserId = post.userId,
+                    PostId = post.Id,
+                    comment = comment,
+                };
+
+                var createdComment = await _postsDBHelper.insertComment(commentDTO);
+                if (createdComment == null) return NotFound();
+                Comments[] newComments = [.. post.comments, createdComment];
+                post.comments = newComments.ToList();
+                return Ok(post);
+            }
+
+            else if (like == true)
+            {
+                var likeDTO = new Likes
+                {
+                    Id = Guid.NewGuid(),
+                    UserId = post.userId,
+                    PostId = post.Id,
+                };
+
+                var createdLike = await _postsDBHelper.insertLike(likeDTO);
+
+                if (createdLike == null) return NotFound();
+
+                post.likes += 1;
+                return Ok(post);
+            }
+
+
+            else return StatusCode(500, "Invalid parameters provided");
         }
 
 
