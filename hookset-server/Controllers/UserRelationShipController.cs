@@ -16,12 +16,10 @@ namespace hookset_server.Controllers
 
 
         [HttpGet("{followedUserId}")]
-        public async Task<ActionResult<UserRelationships>> getUserRelation(Guid userId, Guid followedUserId)
+        public async Task<ActionResult<UserRelationsDTO?>> getUserRelation(Guid userId, Guid followedUserId)
         {
             if (userId == followedUserId) return BadRequest();
             var userRelationship = await _UserRelationsHelper.getUserRelationship(userId,followedUserId);
-
-            if(userRelationship == null) return NotFound();
 
             return Ok(userRelationship);
 
@@ -46,5 +44,42 @@ namespace hookset_server.Controllers
 
             return Ok(followingList);
         }
+
+        [HttpPost("follow/{followerId}")]
+        public async Task<ActionResult<UserRelationships>> followUser(Guid userId, Guid followerId)
+        {
+            if(userId == followerId) return BadRequest();
+
+            var existingUserRelationship = await _UserRelationsHelper.getUserRelationship(userId, followerId);
+
+            if (existingUserRelationship != null) return BadRequest();
+
+
+            var createdUserRelationship = await _UserRelationsHelper.createUserRelationship(userId, followerId);
+
+            if (createdUserRelationship == null) return StatusCode(500, "Issue creating user relationship");
+
+            return createdUserRelationship;
+        }
+
+        [HttpPost("unfollow/{followerId}")]
+        public async Task<ActionResult<UserRelationships>> unFollowUser(Guid userId, Guid followerId)
+        {
+            if (userId == followerId) return BadRequest();
+
+            var existingUserRelationship = await _UserRelationsHelper.getUserRelationship(userId, followerId);
+
+            if (existingUserRelationship == null) return BadRequest();
+
+
+            var deletedUserRelationship = await _UserRelationsHelper.deleteUserRelationship(userId, followerId);
+
+            if (deletedUserRelationship == null) return StatusCode(500, "Issue creating user relationship");
+
+            return deletedUserRelationship;
+        }
+
+
+
     }
 }

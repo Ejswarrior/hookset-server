@@ -26,7 +26,7 @@ namespace hookset_server.DBHelpers
         public async Task<UserRelationsDTO?> getUserRelationship(Guid userId, Guid followedUserId)
         {
             const string queryUserRelationship = "SELECT UserRelationships.Id, UserRelationships.FollowingSince, HooksetUser.UserName FROM UserRelationships LEFT JOIN HooksetUser ON UserRelationships.FollowedUserId = HooksetUser.Id WHERE UserId = @UserId AND FollowedUserId = @FollowedUserId;";
-            var queryUserRelationshipParams = new {UserId = userId, FollowedUserId = followedUserId};
+            var queryUserRelationshipParams = new {UserId = userId.ToString(), FollowedUserId = followedUserId.ToString()};
             using (var conneciton = _dapperContext.createConnection())
             {
                 var userRelationship = await conneciton.QuerySingleOrDefaultAsync<UserRelationsDTO>(queryUserRelationship, queryUserRelationshipParams);
@@ -38,11 +38,11 @@ namespace hookset_server.DBHelpers
         {
 
             const string createUserRelationshipQuery = "INSERT INTO UserRelationships (Id, UserId, FollowedUserId, FollowingSince) VALUES (@Id, @UserId, @FollowedUserId, @FollowingSince) SELECT SCOPE_IDENTITY();";
-            var createUserRelationshipParams = new {Id = Guid.NewGuid(), UserId = userId, FollowedUserId = followedUserId, FollowingSince = DateTime.Now};
+            var createUserRelationshipParams = new {Id = Guid.NewGuid(), UserId = userId.ToString(), FollowedUserId = followedUserId.ToString(), FollowingSince = DateTime.Now};
 
             using(var conneciton = _dapperContext.createConnection()) 
             {
-                var id = await conneciton.QuerySingleOrDefaultAsync<int>(createUserRelationshipQuery, createUserRelationshipParams);
+                var id = await conneciton.QuerySingleOrDefaultAsync<Guid>(createUserRelationshipQuery, createUserRelationshipParams);
 
                 var createdUser = new UserRelationships { Id = id, userId = userId, followedUserId = followedUserId, FollowingSince = DateTime.Now};
 

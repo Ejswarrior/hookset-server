@@ -15,7 +15,9 @@ namespace hookset_server.DBHelpers
     public class UserCreateDTO
     {
         [Required]
-        public string email { get; set; }
+        public string 
+            
+            email { get; set; }
         [Required]
         public string password { get; set; }
         [Required]
