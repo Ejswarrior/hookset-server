@@ -105,7 +105,7 @@ namespace hookset_server.DBHelpers
 
             if (followers == true)
             {
-                var followingIds = await connection.QueryAsync<UserRelationships>("Select DISTINCT UserTwoId FROM Followers WHERE UserId = @UserId & UserOneFollowUserTwo = 1");
+                var followingIds = await connection.QueryAsync<UserRelationships>("Select DISTINCT UserTwoId FROM UserRelationships WHERE UserId = @UserId & UserOneFollowUserTwo = 1");
                 listPostQuery += " Where UserId IN @Ids";
             }
             if (pageStart != null && perPage != null && pageStart != 0) listPostQuery += $" ORDER BY CreatedDate DESC OFFSET @perPage * @pageStart ROWS FETCH NEXT @perPage ROWS ONLY";

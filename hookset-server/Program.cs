@@ -26,6 +26,8 @@ builder.Services.AddSingleton<DapperContext>();
 builder.Services.AddScoped<IUserDBHelper, UserDBHelper>();
 builder.Services.AddScoped<IJWTManager, JWTManager>();
 builder.Services.AddScoped<IPostsDBHelper, PostsDBHelper>();
+builder.Services.AddScoped<ICommentsDBHelper, CommentsDBHelper>();
+builder.Services.AddScoped<IUserRelationsDBHelper, UserRelationsDBHelper>();
 builder.Services.AddScoped<SaltManager>();
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
