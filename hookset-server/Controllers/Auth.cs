@@ -5,6 +5,7 @@ using Dapper;
 using System.Data;
 using System.Data.SqlClient;
 using hookset_server.DBHelpers;
+using Microsoft.AspNetCore.Authorization;
 
 namespace hookset_server.Controllers
 {
@@ -26,6 +27,7 @@ namespace hookset_server.Controllers
 
         [HttpPost]
         [Route("/login")]
+        [AllowAnonymous]
         public async Task<ActionResult> Login(string email, string password)
         {
             var authenticatedUser = await userDBHelper.getUser(email, null);
@@ -37,27 +39,29 @@ namespace hookset_server.Controllers
             if (!encrytedPassword) return StatusCode(403, "Invalid Credentials");
 
             var token = jWTManager.Authenticate(email, password);
-            
+
+            if(token == null) return Unauthorized();
+
             return Ok(token);
         }
 
         [HttpPost]
         [Route("/create-acount")]
-
+        [AllowAnonymous]
         public async Task<ActionResult> CreateAccount(string email, string password, string firstName, string lastName, string userName)
         {
 
             var duplicateUser = await userDBHelper.getUser(email, null);
 
-            if (duplicateUser != null) return StatusCode(400, "User already exists");
+            if (duplicateUser != null) return StatusCode(404, "User already exists");
             try
             {
                 var hashedPassword = _salt.saltPassword(password);
-                var createdUser = await userDBHelper.createUser(new UserCreateDTO { email = email, password = password, firstName = firstName, lastName = lastName, userName = userName });
+                var createdUser = await userDBHelper.createUser(new UserCreateDTO { email = email, password = hashedPassword, firstName = firstName, lastName = lastName, userName = userName });
                 if (createdUser == null) return StatusCode(500, "Error creating user");
-                Console.WriteLine($"{createdUser.Id}");
                 var token = jWTManager.Authenticate(email, password);
 
+                if (token == null) return Unauthorized();
                 return Ok(token);
             }
             catch (Exception ex)

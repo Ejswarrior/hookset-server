@@ -15,7 +15,6 @@ namespace hookset_server.DBHelpers
         public Task<Posts?> insertPost(insertPostDTO postObj);
         public Task<List<PostDTO>> listPosts(Guid userId, int? pageStart, int? perPage, bool? follower);
         public Task<PostDTO?> getPost(Guid postId);
-        public Task<String> constructListQuery(System.Data.IDbConnection connection, Guid userId, int? pageStart, int? perPage, bool? followers);
         public PostDTO ConvertToPostDTO(Posts postObj, List<CommentDTO> comments, int Likes);
         public  Task<Likes?> insertLike(Likes like);
     }
@@ -64,18 +63,40 @@ namespace hookset_server.DBHelpers
             };
         }
 
+        public async Task<FishLog?> insertFishLog(InsertFishLogDTO fishLogDto)
+        {
+            using (var connection = _dapperContext.createConnection()) { 
+            const string createFishLogQuery = "INSERT INTO FishLog (Id, FishSpecies, Weight, Length, BodyOfWaterCaughtIn, PostId) VALUES (@Id, @FishSpecies, @Weight, @Length, @BodyOfWaterCaughtIn, @PostId, @UserId) SELECT SCOPE_IDENTITY()";
+            var createFishLogParameters = new { Id = Guid.NewGuid(), UserId = fishLogDto.userId, BodyOfWaterCaughtIn = fishLogDto.bodyOfWaterCaughtIn, Weight = fishLogDto.weight ?? null, Length = fishLogDto.length ?? null, FishSpecies = fishLogDto.fishSpecies };
+            var fishLogId = await connection.QuerySingleOrDefaultAsync<Guid>(createFishLogQuery, createFishLogParameters);
+
+                return new FishLog
+                {
+                    Id = fishLogId,
+                    userId = fishLogDto.userId,
+                    postId = fishLogId,
+                    bodyOfWaterCaughtIn = fishLogDto.bodyOfWaterCaughtIn,
+                    weight = fishLogDto.weight ?? null,
+                    length = fishLogDto.length ?? null,
+                    fishSpecies = fishLogDto.fishSpecies,
+                };
+            }
+        }
+
         public async Task<Posts?> insertPost(insertPostDTO postObj)  
         {
-            var createPostQuery = "INSERT INTO Posts (Id,UserId,UserName,CreatedDate,Likes,Description,BodyOfWaterCaughtIn,Weight,Length,FishSpecies,UpdatedDate) VALUES (@Id, @UserId, @UserName, @CreatedDate, @Likes, @Description, @BodyOfWaterCaughtIn, @Weight, @Length, @FishSpecies, @UpdatedDate);";
+            const string createPostQuery = "INSERT INTO Posts (Id,UserId,UserName,CreatedDate,Likes,Description,UpdatedDate) VALUES (@Id, @UserId, @UserName, @CreatedDate, @Likes, @Description, @UpdatedDate);";
+            const string createFishLogQuery = "INSERT INTO FishLog (Id, FishSpecies, Weight, Length, BodyOfWaterCaughtIn, PostId) VALUES (@Id, @FishSpecies, @Weight, @Length, @BodyOfWaterCaughtIn, @PostId, @UserId)";
             Console.Write(JsonConvert.SerializeObject(postObj));
             var newID = Guid.NewGuid();
             Console.WriteLine(newID); 
 
             using (var connection = _dapperContext.createConnection())
             {
-                var createPostParameters = new { Id = newID, UserId = postObj.userId, UserName = postObj.userName, CreatedDate = postObj.createdDate, Likes = postObj.likes, Description = postObj.description, BodyOfWaterCaughtIn = postObj.bodyOfWaterCaughtIn, Weight = postObj.weight ?? null, Length = postObj.length ?? null, FishSpecies = postObj.fishSpecies ?? null, UpdatedDate = postObj.updatedDate ?? null };
-
-                var id = await connection.QuerySingleOrDefaultAsync<int>(createPostQuery, createPostParameters);
+                var createPostParameters = new { Id = newID, UserId = postObj.userId, UserName = postObj.userName, CreatedDate = postObj.createdDate, Likes = postObj.likes, Description = postObj.description, UpdatedDate = postObj.updatedDate ?? null };
+                var createFishLogParameters = new { Id = Guid.NewGuid(), UserId = postObj.userId, PostId = newID, BodyOfWaterCaughtIn = postObj.bodyOfWaterCaughtIn, Weight = postObj.weight ?? null, Length = postObj.length ?? null, FishSpecies = postObj.fishSpecies ?? null };
+                var postId = await connection.QuerySingleOrDefaultAsync<int>(createPostQuery, createPostParameters);
+                var fishLogId = await connection.QuerySingleOrDefaultAsync<int>(createFishLogQuery, createFishLogParameters);
                 var createdPost = ConvertToPost(newID, postObj);
                 return createdPost;
             }
@@ -85,7 +106,7 @@ namespace hookset_server.DBHelpers
 
         public async Task<PostDTO?> getPost(Guid postId)
         {
-            var getPostQuery = "SELECT * FROM Posts WHERE Id = @PostId;";
+            const string getPostQuery = "SELECT * FROM Posts, FishLog.FishSpecies, FishLog.Weight, FishLog.Length, FishLog.BodyOfWaterCaughtIn LEFT JOIN FishSpecies ON Fishspecies.PostId = Posts.Id WHERE Id = @PostId;";
             using (var connection = _dapperContext.createConnection())
             {
                 var post = await connection.QueryFirstOrDefaultAsync<Posts>(getPostQuery, new { PostId = postId});
@@ -97,9 +118,9 @@ namespace hookset_server.DBHelpers
             }
         }
 
-        public async Task<String> constructListQuery(System.Data.IDbConnection connection , Guid userId, int? pageStart, int? perPage, bool? followers)
+        private async Task<String> constructListQuery(System.Data.IDbConnection connection , Guid userId, int? pageStart, int? perPage, bool? followers)
         {
-            var listPostQuery = "SELECT * FROM Posts";
+            var listPostQuery = "SELECT * FROM Posts LEFT JOIN FishSpecies ON Fishspecies.PostId = Posts.Id";
 
             if (followers != null && followers == false) listPostQuery += " WHERE UserId = @UserId";
 
@@ -150,11 +171,11 @@ namespace hookset_server.DBHelpers
 
         public async Task<Likes?> insertLike(Likes like)
         {
-            var insertLikeQuery = "INSERT into Likes (Id, UserId, PostId) VALUES (@Id, @UserId, @PostId);";
-            var deleteLikeQuery = "DELETE FROM Likes WHERE UserId = @UserId AND PostId = @PostId;";
+            const string insertLikeQuery = "INSERT into Likes (Id, UserId, PostId) VALUES (@Id, @UserId, @PostId);";
+            const string deleteLikeQuery = "DELETE FROM Likes WHERE UserId = @UserId AND PostId = @PostId;";
             using (var connection = _dapperContext.createConnection())
             {
-                var findLikeQuery = "SELECT * FROM Likes WHERE UserId = @UserId AND PostId = @PostId;";
+                const string findLikeQuery = "SELECT * FROM Likes WHERE UserId = @UserId AND PostId = @PostId;";
                 var basicQueryParams = new { UserId = like.UserId, PostId = like.PostId };
                 var insertQueryParams = new { Id = like.Id, PostId = like.PostId, UserId = like.UserId };
 

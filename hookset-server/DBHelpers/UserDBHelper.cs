@@ -2,6 +2,7 @@
 using hookset_server.models;
 using Microsoft.OpenApi.Validations;
 using System.ComponentModel.DataAnnotations;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 
 namespace hookset_server.DBHelpers
@@ -15,14 +16,16 @@ namespace hookset_server.DBHelpers
     public class UserCreateDTO
     {
         [Required]
-        public string 
-            
-            email { get; set; }
+        [NotNull]
+        public string email { get; set; }
         [Required]
+        [NotNull]
         public string password { get; set; }
         [Required]
+        [NotNull]
         public string firstName { get; set; }
         [Required]
+        [NotNull]
         public string lastName { get; set; }
 
         [Required]
@@ -39,24 +42,19 @@ namespace hookset_server.DBHelpers
 
         async public Task<User?> getUser(string? email = null, Guid? userId = null)
         {
-            var query = email != null ? "SELECT * FROM HooksetUser WHERE Email = @Email;" : "SELECT * FROM HooksetUser WHERE ID = @userId;";
-
+            const string emailQuery = "SELECT * FROM HooksetUser WHERE Email = @Email;";
+            const string idQuery = "SELECT * FROM HooksetUser WHERE Id = @userId;";
 
             using (var connection = _dapperContext.createConnection())
             {
-                Console.WriteLine("Connected");
-                var user = await connection.QuerySingleOrDefaultAsync<User>(query, email != null? new {  email } : new { userId });
-                if (user == null)
-                {
-                    Console.WriteLine("No User");
-                }
+                var user = await connection.QuerySingleOrDefaultAsync<User>(email != null ? emailQuery : idQuery, email != null? new {  email } : new { userId });
                 return user;
             }
         }
 
         async public Task<User> createUser(UserCreateDTO userCreate)
         {
-            var createUserQuery = "INSERT INTO HooksetUser (Id,Email,Password,FirstName,LastName, UserName) VALUES (@Id, @Email, @Password, @FirstName, @LastName, @UserName);";
+            const string createUserQuery = "INSERT INTO HooksetUser (Id,Email,Password,FirstName,LastName, UserName) VALUES (@Id, @Email, @Password, @FirstName, @LastName, @UserName);";
 
             using (var connection = _dapperContext.createConnection())
             {

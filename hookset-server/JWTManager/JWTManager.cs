@@ -38,6 +38,7 @@ namespace hookset_server.JWTManager
                                       SecurityAlgorithms.HmacSha256Signature)
             };
             var token = tokenHandler.CreateToken(tokenDescriptor);
+
             return tokenHandler.WriteToken(token);
         }
 
