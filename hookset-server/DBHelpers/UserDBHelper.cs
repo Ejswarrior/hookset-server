@@ -1,5 +1,6 @@
 ﻿using Dapper;
 using hookset_server.models;
+using hookset_server.QueryBuilders;
 using Microsoft.OpenApi.Validations;
 using System.ComponentModel.DataAnnotations;
 using System.Diagnostics.CodeAnalysis;
@@ -42,8 +43,9 @@ namespace hookset_server.DBHelpers
 
         async public Task<User?> getUser(string? email = null, Guid? userId = null)
         {
-            const string emailQuery = "SELECT * FROM HooksetUser WHERE Email = @Email;";
-            const string idQuery = "SELECT * FROM HooksetUser WHERE Id = @userId;";
+            
+            var emailQuery = new SelectQueryBuilder().addTableName("HooksetUser").getWhereValues(new List<WhereQueries> { new WhereQueries { paramName = "Email", sqlName = "Email" } }).buildSelectQuery();
+            var idQuery = new SelectQueryBuilder().addTableName("HooksetUser").getWhereValues(new List<WhereQueries> { new WhereQueries { paramName = "UserId", sqlName = "Id" } }).buildSelectQuery();
 
             using (var connection = _dapperContext.createConnection())
             {
@@ -54,7 +56,7 @@ namespace hookset_server.DBHelpers
 
         async public Task<User> createUser(UserCreateDTO userCreate)
         {
-            const string createUserQuery = "INSERT INTO HooksetUser (Id,Email,Password,FirstName,LastName, UserName) VALUES (@Id, @Email, @Password, @FirstName, @LastName, @UserName);";
+            var createUserQuery = new InsertQueryBuilder().addTableName("HooksetUser").addColumnNames(new[] { "Id", "Email", "Password", "FirstName", "lastName", "UserName" }).addParamNames(new[] { "Id", "Email", "Password", "FirstName", "LastName", "UserName" }).buildInsertQuery();
 
             using (var connection = _dapperContext.createConnection())
             {

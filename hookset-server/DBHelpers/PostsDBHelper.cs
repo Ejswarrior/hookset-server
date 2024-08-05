@@ -6,6 +6,8 @@ using System.Text;
 using System.Xml.Linq;
 using System.Text.Json;
 using Microsoft.Extensions.Hosting;
+using hookset_server.QueryBuilders;
+using System;
 
 
 namespace hookset_server.DBHelpers
@@ -66,7 +68,7 @@ namespace hookset_server.DBHelpers
         public async Task<FishLog?> insertFishLog(InsertFishLogDTO fishLogDto)
         {
             using (var connection = _dapperContext.createConnection()) { 
-            const string createFishLogQuery = "INSERT INTO FishLog (Id, FishSpecies, Weight, Length, BodyOfWaterCaughtIn, PostId) VALUES (@Id, @FishSpecies, @Weight, @Length, @BodyOfWaterCaughtIn, @PostId, @UserId) SELECT SCOPE_IDENTITY()";
+            var createFishLogQuery = new InsertQueryBuilder().addTableName("FishLog").addColumnNames(new[] { "Id", "FishSpecies", "Weight", "Length", "BodyOfWaterCaughtIn", "PostId" }).addParamNames(new[] { "Id", "FishSpecies", "Weight", "Length", "BodyOfWaterCaughtIn", "PostId", "UserId" } ).buildInsertQuery(true)''
             var createFishLogParameters = new { Id = Guid.NewGuid(), UserId = fishLogDto.userId, BodyOfWaterCaughtIn = fishLogDto.bodyOfWaterCaughtIn, Weight = fishLogDto.weight ?? null, Length = fishLogDto.length ?? null, FishSpecies = fishLogDto.fishSpecies };
             var fishLogId = await connection.QuerySingleOrDefaultAsync<Guid>(createFishLogQuery, createFishLogParameters);
 
