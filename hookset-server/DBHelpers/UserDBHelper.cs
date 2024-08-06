@@ -56,7 +56,7 @@ namespace hookset_server.DBHelpers
 
         async public Task<User> createUser(UserCreateDTO userCreate)
         {
-            var createUserQuery = new InsertQueryBuilder().addTableName("HooksetUser").addColumnNames(new[] { "Id", "Email", "Password", "FirstName", "lastName", "UserName" }).addParamNames(new[] { "Id", "Email", "Password", "FirstName", "LastName", "UserName" }).buildInsertQuery();
+            var createUserQuery = new InsertQueryBuilder().addTableName("HooksetUser").addColumnNames(new[] { "Id", "Email", "Password", "FirstName", "lastName", "UserName" }).addParamNames(new[] { "Id", "Email", "Password", "FirstName", "LastName", "UserName" }).buildInsertQuery(true);
 
             using (var connection = _dapperContext.createConnection())
             {

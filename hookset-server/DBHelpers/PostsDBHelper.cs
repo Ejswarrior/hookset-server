@@ -24,8 +24,8 @@ namespace hookset_server.DBHelpers
     {
         private readonly DapperContext _dapperContext;
         private readonly ICommentsDBHelper _commentsDBHelper;
-        private readonly String likesQuery = "SELECT Count(*) FROM Likes WHERE PostId = @PostId";
-
+        private readonly String likesQuery = new SelectQueryBuilder().addTableName("Likes").addSelectValues(null, true).getWhereValues(new List<WhereQueries> { new WhereQueries { paramName = "PostId", sqlName = "PostId" } }).buildSelectQuery();
+            
         public PostsDBHelper(DapperContext dapperContext, ICommentsDBHelper commentsDBHelper)
         {
             _dapperContext = dapperContext;
@@ -67,8 +67,8 @@ namespace hookset_server.DBHelpers
 
         public async Task<FishLog?> insertFishLog(InsertFishLogDTO fishLogDto)
         {
-            using (var connection = _dapperContext.createConnection()) { 
-            var createFishLogQuery = new InsertQueryBuilder().addTableName("FishLog").addColumnNames(new[] { "Id", "FishSpecies", "Weight", "Length", "BodyOfWaterCaughtIn", "PostId" }).addParamNames(new[] { "Id", "FishSpecies", "Weight", "Length", "BodyOfWaterCaughtIn", "PostId", "UserId" } ).buildInsertQuery(true)''
+            using (var connection = _dapperContext.createConnection()) {
+                var createFishLogQuery = new InsertQueryBuilder().addTableName("FishLog").addColumnNames(new[] { "Id", "FishSpecies", "Weight", "Length", "BodyOfWaterCaughtIn", "PostId" }).addParamNames(new[] { "Id", "FishSpecies", "Weight", "Length", "BodyOfWaterCaughtIn", "PostId", "UserId" }).buildInsertQuery(true);
             var createFishLogParameters = new { Id = Guid.NewGuid(), UserId = fishLogDto.userId, BodyOfWaterCaughtIn = fishLogDto.bodyOfWaterCaughtIn, Weight = fishLogDto.weight ?? null, Length = fishLogDto.length ?? null, FishSpecies = fishLogDto.fishSpecies };
             var fishLogId = await connection.QuerySingleOrDefaultAsync<Guid>(createFishLogQuery, createFishLogParameters);
 
@@ -87,8 +87,8 @@ namespace hookset_server.DBHelpers
 
         public async Task<Posts?> insertPost(insertPostDTO postObj)  
         {
-            const string createPostQuery = "INSERT INTO Posts (Id,UserId,UserName,CreatedDate,Likes,Description,UpdatedDate) VALUES (@Id, @UserId, @UserName, @CreatedDate, @Likes, @Description, @UpdatedDate);";
-            const string createFishLogQuery = "INSERT INTO FishLog (Id, FishSpecies, Weight, Length, BodyOfWaterCaughtIn, PostId) VALUES (@Id, @FishSpecies, @Weight, @Length, @BodyOfWaterCaughtIn, @PostId, @UserId)";
+            var createPostQuery = new InsertQueryBuilder().addTableName("Posts").addColumnNames(new[] { "Id", "UserId", "UserName", "CreatedDate", "Likes", "Description", "UpdatedDate" }).addParamNames(new[] { "Id", "UserId", "UserName", "CreatedDate", "Likes", "Description", "UpdatedDate" }).buildInsertQuery(false);
+            var createFishLogQuery = new InsertQueryBuilder().addTableName("FishLog").addColumnNames(new[] { "Id", "FishSpecies", "Weight", "Length", "BodyOfWaterCaughtIn", "PostId", "UserId" }).addParamNames(new[] { "Id", "FishSpecies", "Weight", "Length", "BodyOfWaterCaughtIn", "PostId", "UserId" }).buildInsertQuery(false);
             Console.Write(JsonConvert.SerializeObject(postObj));
             var newID = Guid.NewGuid();
             Console.WriteLine(newID); 
@@ -108,7 +108,7 @@ namespace hookset_server.DBHelpers
 
         public async Task<PostDTO?> getPost(Guid postId)
         {
-            const string getPostQuery = "SELECT * FROM Posts, FishLog.FishSpecies, FishLog.Weight, FishLog.Length, FishLog.BodyOfWaterCaughtIn LEFT JOIN FishSpecies ON Fishspecies.PostId = Posts.Id WHERE Id = @PostId;";
+            var getPostQuery =  new SelectQueryBuilder().addTableName("Posts").addLeftJoinValues(new[] {"Weight", "FishSpecies", "Length", "BodyOfWaterCaughtIn"}, "FishLog").addLeftJoin("FishLog", "PostId", "Posts.Id").getWhereValues(new List<WhereQueries> { new WhereQueries { paramName = "PostId", sqlName = "Id" } }).buildSelectQuery();
             using (var connection = _dapperContext.createConnection())
             {
                 var post = await connection.QueryFirstOrDefaultAsync<Posts>(getPostQuery, new { PostId = postId});
@@ -122,7 +122,7 @@ namespace hookset_server.DBHelpers
 
         private async Task<String> constructListQuery(System.Data.IDbConnection connection , Guid userId, int? pageStart, int? perPage, bool? followers)
         {
-            var listPostQuery = "SELECT * FROM Posts LEFT JOIN FishSpecies ON Fishspecies.PostId = Posts.Id";
+            var listPostQuery = "SELECT * FROM Posts LEFT JOIN FishLog ON FishLog.PostId = Posts.Id";
 
             if (followers != null && followers == false) listPostQuery += " WHERE UserId = @UserId";
 
@@ -173,11 +173,11 @@ namespace hookset_server.DBHelpers
 
         public async Task<Likes?> insertLike(Likes like)
         {
-            const string insertLikeQuery = "INSERT into Likes (Id, UserId, PostId) VALUES (@Id, @UserId, @PostId);";
+            var insertLikeQuery = new InsertQueryBuilder().addColumnNames(new[] { "Id", "UserId", "PostId" }).addParamNames(new[] { "Id", "UserId", "PostId" }).buildInsertQuery(false);
             const string deleteLikeQuery = "DELETE FROM Likes WHERE UserId = @UserId AND PostId = @PostId;";
             using (var connection = _dapperContext.createConnection())
             {
-                const string findLikeQuery = "SELECT * FROM Likes WHERE UserId = @UserId AND PostId = @PostId;";
+                var findLikeQuery = new SelectQueryBuilder().addTableName("Likes").getWhereValues(new List<WhereQueries> { new WhereQueries { paramName = "UserId", sqlName = "UserId" }, new WhereQueries { paramName = "PostId", sqlName = "PostId" } }).buildSelectQuery();
                 var basicQueryParams = new { UserId = like.UserId, PostId = like.PostId };
                 var insertQueryParams = new { Id = like.Id, PostId = like.PostId, UserId = like.UserId };
 

@@ -1,4 +1,6 @@
-﻿namespace hookset_server.QueryBuilders
+﻿using hookset_server.models;
+
+namespace hookset_server.QueryBuilders
 {
     public class WhereQueries
     {
@@ -7,9 +9,11 @@
     }
     public class SelectQuery
     {
-        public string? _tableName = "";
-        public string? _selectValues = "";
+        public string? _tableName;
+        public string? _selectValues;
         public string? whereValue;
+        public string? leftJoin;
+        public string? leftJoinValues;
     }
 
     public class SelectQueryBuilder
@@ -22,7 +26,7 @@
             return this;
         }
 
-        public SelectQueryBuilder addSelectValues(string[]? selectValues)
+        public SelectQueryBuilder addSelectValues(string[]? selectValues, bool? selectCount)
         {
             if (selectValues != null)
             {
@@ -32,9 +36,9 @@
                     if (i == selectValues.Length - 1) selectValuesString += $"{selectValues[i]} ";
                     else selectValuesString += $"{selectValues[i]}, ";
                 }
-                _selectQuery._selectValues += selectValuesString;
+                _selectQuery._selectValues += selectCount != null ? $"COUNT({selectValuesString})" : selectValuesString;
             }
-            else _selectQuery._selectValues += "*";
+            else _selectQuery._selectValues += selectCount != null ? $"COUNT(*)" : "*";
             return this;
         }
 
@@ -50,10 +54,35 @@
             _selectQuery.whereValue = whereString;
             return this;
         }
+        public SelectQueryBuilder addLeftJoin(string leftTableName, string tableJoinId, string equalValue)
+        {
+
+            _selectQuery.leftJoin = $"LEFT JOIN {leftTableName} ON {leftTableName}.{tableJoinId} = {equalValue}";
+            return this;
+        }
+        public SelectQueryBuilder addLeftJoinValues(string[] leftJoinValues, string tableValueName)
+        {
+            var joinString = "";
+            for (int i = 0; i < leftJoinValues.Length; i++)
+            {
+                if (i == leftJoinValues.Length - 1) joinString += $" {tableValueName}.{leftJoinValues[i]}";
+                else joinString += $" {tableValueName}.{leftJoinValues[i]},";
+            }
+            _selectQuery.leftJoinValues = joinString;
+            return this;
+        }
+
+
+
         public string buildSelectQuery()
         {
-            if (_selectQuery._selectValues == null || _selectQuery._tableName == null) return "";
-            var baseSelectQuery = $"SELECT {_selectQuery._selectValues} FROM {_selectQuery._tableName}";
+            if (_selectQuery._tableName == null) return "";
+            var selectValues = _selectQuery._selectValues != null ? _selectQuery._selectValues : "*";
+            var baseSelectQuery = $"SELECT {selectValues} FROM";
+            Console.WriteLine(baseSelectQuery);
+
+            if (_selectQuery.leftJoinValues != null) baseSelectQuery += $" {_selectQuery._tableName},{_selectQuery.leftJoinValues} ";
+            if (_selectQuery.leftJoin != null) baseSelectQuery += _selectQuery.leftJoin;
 
             if (_selectQuery.whereValue == null) return baseSelectQuery + ";";
 

@@ -1,3 +1,5 @@
+global using Azure.Storage.Blobs
+
 using hookset_server.DBHelpers;
 using hookset_server.JWTManager;
 using hookset_server.models;
@@ -23,6 +25,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
 });
 
 builder.Services.AddSingleton<DapperContext>();
+builder.Services.AddSingleton(x => new BlobServiceClient(builder.Configuration.GetConnectionString("AzureBlobConnectionString")));
 builder.Services.AddScoped<IUserDBHelper, UserDBHelper>();
 builder.Services.AddScoped<IJWTManager, JWTManager>();
 builder.Services.AddScoped<IPostsDBHelper, PostsDBHelper>();
