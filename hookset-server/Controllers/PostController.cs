@@ -29,7 +29,13 @@ namespace hookset_server.Controllers
             var user = await userDBHelper.getUser(null, userId);
 
             if (user == null) return StatusCode(403, "Not Authorized");
-            Console.Write(user.Id);
+
+            if (postCreationObj.blobContent.Count > 4) return StatusCode(400, "Only 4 images allowed for a post");
+
+            var blobContent = new List<PostImage>();
+
+       
+
             var newPost = new insertPostDTO
             {
                 userId = user.Id,
@@ -41,6 +47,7 @@ namespace hookset_server.Controllers
                 weight =  0,
                 length = 0,
                 fishSpecies = postCreationObj.fishSpecies,
+                blobContent = postCreationObj.blobContent,
             };
 
             var post = await _postsDBHelper.insertPost(newPost);

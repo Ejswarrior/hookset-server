@@ -1,5 +1,6 @@
 global using Azure.Storage.Blobs
 
+using hookset_server;
 using hookset_server.DBHelpers;
 using hookset_server.JWTManager;
 using hookset_server.models;
@@ -31,6 +32,7 @@ builder.Services.AddScoped<IJWTManager, JWTManager>();
 builder.Services.AddScoped<IPostsDBHelper, PostsDBHelper>();
 builder.Services.AddScoped<ICommentsDBHelper, CommentsDBHelper>();
 builder.Services.AddScoped<IUserRelationsDBHelper, UserRelationsDBHelper>();
+builder.Services.AddScoped<IBlobStorageService, BlobStorageService>();
 builder.Services.AddScoped<UserRelationsQueries>();
 builder.Services.AddScoped<SaltManager>();
 builder.Services.AddControllers();

@@ -1,4 +1,5 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.ComponentModel.DataAnnotations;
+using System.Runtime.InteropServices;
 
 namespace hookset_server.models
 {
@@ -12,6 +13,8 @@ namespace hookset_server.models
         public string fishSpecies { get; set; }
         public int? weight { get; set; }
         public int? length { get; set; }
+        [MaxLength(4)]
+        public List<BlobConentModel> blobContent { get; set; }
     }
 
     public class insertPostDTO
@@ -30,6 +33,8 @@ namespace hookset_server.models
         public string fishSpecies { get; set; }
         public int? weight { get; set; }
         public int? length { get; set; }
+        [MaxLength(4)]
+        public List<BlobConentModel> blobContent { get; set; }   
     }
 
     public class Posts
