@@ -43,11 +43,6 @@ namespace hookset_server.DBHelpers
                 userName = postObj.userName,
                 userId = postObj.userId,
                 createdDate = postObj.createdDate,
-                weight = postObj.weight,
-                length = postObj.length,
-                fishSpecies = postObj.fishSpecies,
-                description = postObj.description,
-                bodyOfWaterCaughtIn = postObj.bodyOfWaterCaughtIn
             };
         }
 
@@ -58,17 +53,13 @@ namespace hookset_server.DBHelpers
                 userName = postObj.userName,
                 userId = postObj.userId,
                 createdDate = postObj.createdDate,
-                weight = postObj.weight,
-                length = postObj.length,
-                fishSpecies = postObj.fishSpecies,
-                description = postObj.description,
-                bodyOfWaterCaughtIn = postObj.bodyOfWaterCaughtIn,
+ 
                 comments = comments != null ? comments.ToList() : [],
                 likes = Likes,
             };
         }
 
-        public async Task<List<SQLPostImage>> uploadPostImages(Guid postId, List<BlobConentModel> fileData)
+        public async Task<List<SQLPostImage>> uploadPostImages(Guid postId, List<BlobContentModel> fileData, Guid fishLogId)
         {
             var blobContent = new List<SQLPostImage>();
 
@@ -78,7 +69,7 @@ namespace hookset_server.DBHelpers
                 var url = await _blobStorageService.uploadBlob(item.fileName, item.filePath);
                 var extension = Path.GetExtension(item.fileName);
 
-                blobContent.Add(new SQLPostImage{Id = Guid.NewGuid(), PostId = postId, ImageType = $"image/{extension.Remove(0,1)}", ImageUrl = url});
+                blobContent.Add(new SQLPostImage{Id = Guid.NewGuid(), PostId = postId, ImageType = $"image/{extension.Remove(0,1)}", ImageUrl = url, FishLogId = fishLogId });
             }
 
             return blobContent;
@@ -106,23 +97,34 @@ namespace hookset_server.DBHelpers
 
         public async Task<Posts?> insertPost(insertPostDTO postObj)  
         {
-            var createPostQuery = new InsertQueryBuilder().addTableName("Posts").addColumnNames(new[] { "Id", "UserId", "UserName", "CreatedDate", "Likes", "Description", "UpdatedDate" }).addParamNames(new[] { "Id", "UserId", "UserName", "CreatedDate", "Likes", "Description", "UpdatedDate" }).buildInsertQuery(false);
-            var createFishLogQuery = new InsertQueryBuilder().addTableName("FishLog").addColumnNames(new[] { "Id", "FishSpecies", "Weight", "Length", "BodyOfWaterCaughtIn", "PostId", "UserId" }).addParamNames(new[] { "Id", "FishSpecies", "Weight", "Length", "BodyOfWaterCaughtIn", "PostId", "UserId" }).buildInsertQuery(false);
+            var createPostQuery = new InsertQueryBuilder().addTableName("Posts").addColumnNames(new[] { "Id", "UserId", "UserName", "CreatedDate", "Likes", "Description", "UpdatedDate" }).addParamNames(new[] { "Id", "UserId", "UserName", "CreatedDate", "Likes", "Description", "UpdatedDate" }).buildInsertQuery(true);
+            Console.WriteLine(createPostQuery);
+            var createFishLogQuery = new InsertQueryBuilder().addTableName("FishLog").addColumnNames(new[] { "Id", "FishSpecies", "Weight", "Length", "BodyOfWaterCaughtIn", "PostId", "UserId" }).addParamNames(new[] { "Id", "FishSpecies", "Weight", "Length", "BodyOfWaterCaughtIn", "PostId", "UserId" }).buildInsertQuery(true);
             Console.Write(JsonConvert.SerializeObject(postObj));
             var newID = Guid.NewGuid();
-
-            var images = await uploadPostImages(newID, postObj.blobContent);
+            var newFishLogId  = Guid.NewGuid();
+            var images = await uploadPostImages(newID, postObj.blobContent, newFishLogId);
 
 
 
             using (var connection = _dapperContext.createConnection())
             {
-                var insertImagesQuery = new InsertQueryBuilder().addColumnNames(new[] { "Id", "PostId", "ImageType", "ImageUrl" }).addParamNames(new[] { "Id", "PostId", "ImageType", "ImageUrl" }).buildInsertQuery(false) ;
-                var createPostParameters = new { Id = newID, UserId = postObj.userId, UserName = postObj.userName, CreatedDate = postObj.createdDate, Likes = postObj.likes, Description = postObj.description, UpdatedDate = postObj.updatedDate ?? null };
-                var createFishLogParameters = new { Id = Guid.NewGuid(), UserId = postObj.userId, PostId = newID, BodyOfWaterCaughtIn = postObj.bodyOfWaterCaughtIn, Weight = postObj.weight ?? null, Length = postObj.length ?? null, FishSpecies = postObj.fishSpecies ?? null };
-                var postId = await connection.QuerySingleOrDefaultAsync<int>(createPostQuery, createPostParameters);
-                var fishLogId = await connection.QuerySingleOrDefaultAsync<int>(createFishLogQuery, createFishLogParameters);
-                var posts = await connection.QueryMultipleAsync(insertImagesQuery, images);
+                var insertImagesQuery = new InsertQueryBuilder().addTableName("PostImages").addColumnNames(new[] { "Id", "PostId", "ImageType", "ImageUrl", "FishLogId" }).addParamNames(new[] { "Id", "PostId", "ImageType", "ImageUrl", "FishLogId" }).buildInsertQuery(true);
+
+                Console.WriteLine(insertImagesQuery);
+                var createPostParameters = new { Id = newID, UserId = postObj.userId, UserName = postObj.userName, CreatedDate = postObj.createdDate, Likes = 0, Description = postObj.description, UpdatedDate = postObj.updatedDate ?? null };
+                var createFishLogParameters = new { Id = newFishLogId, UserId = postObj.userId, PostId = newID, BodyOfWaterCaughtIn = postObj.bodyOfWaterCaughtIn, Weight = postObj.weight ?? null, Length = postObj.length ?? null, FishSpecies = postObj.fishSpecies ?? null };
+                var postId = await connection.QuerySingleOrDefaultAsync<Posts>(createPostQuery, createPostParameters);
+                var fishLogId = await connection.QuerySingleOrDefaultAsync<FishLog>(createFishLogQuery, createFishLogParameters);
+                var postImages = new List<PostImage>();
+                foreach(var image in images)
+                {
+                    var postImageId = await connection.QuerySingleOrDefaultAsync<PostImage>(insertImagesQuery, image);
+                    Console.WriteLine(postImageId.ToString());
+                    postImages.Add(new PostImage { id = image.Id, fishLogId = image.FishLogId, imageType = image.ImageType, imageUrl = image.ImageUrl, postId = newID });
+
+                }
+                Console.Write(JsonConvert.SerializeObject(postImages));
 
                 var createdPost = ConvertToPost(newID, postObj);
                 return createdPost;

@@ -84,9 +84,10 @@ namespace hookset_server.QueryBuilders
             if (_selectQuery.leftJoinValues != null) baseSelectQuery += $" {_selectQuery._tableName},{_selectQuery.leftJoinValues} ";
             if (_selectQuery.leftJoin != null) baseSelectQuery += _selectQuery.leftJoin;
 
-            if (_selectQuery.whereValue == null) return baseSelectQuery + ";";
+            if (_selectQuery.whereValue == null) return baseSelectQuery + $" {_selectQuery._tableName};";
 
-            return baseSelectQuery += $" WHERE {_selectQuery.whereValue};";
+            if (_selectQuery.leftJoin == null) return baseSelectQuery += $" {_selectQuery._tableName} WHERE {_selectQuery.whereValue};";
+            else return baseSelectQuery += $" WHERE {_selectQuery.whereValue};";
         }
     }
 }

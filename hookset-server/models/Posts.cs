@@ -14,7 +14,7 @@ namespace hookset_server.models
         public int? weight { get; set; }
         public int? length { get; set; }
         [MaxLength(4)]
-        public List<BlobConentModel> blobContent { get; set; }
+        public List<BlobContentModel> blobContent { get; set; }
     }
 
     public class insertPostDTO
@@ -34,7 +34,7 @@ namespace hookset_server.models
         public int? weight { get; set; }
         public int? length { get; set; }
         [MaxLength(4)]
-        public List<BlobConentModel> blobContent { get; set; }   
+        public List<BlobContentModel> blobContent { get; set; }   
     }
 
     public class Posts
@@ -42,18 +42,12 @@ namespace hookset_server.models
         public Guid Id { get; set; }
         public Guid userId { get; set; }
         public DateTime createdDate { get; set; }
-        public int likes { get; set; }
+        public int? likes { get; set; }
 
         public string description { get; set; }
 
         public string userName { get; set; }
         public DateTime? updatedDate { get; set; }
-
-        public string bodyOfWaterCaughtIn { get; set; }
-
-        public string fishSpecies { get; set; }
-        public int? weight { get; set; }
-        public int? length { get; set; }
 
     }
 

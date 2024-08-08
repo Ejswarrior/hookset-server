@@ -46,6 +46,7 @@ namespace hookset_server.DBHelpers
             
             var emailQuery = new SelectQueryBuilder().addTableName("HooksetUser").getWhereValues(new List<WhereQueries> { new WhereQueries { paramName = "Email", sqlName = "Email" } }).buildSelectQuery();
             var idQuery = new SelectQueryBuilder().addTableName("HooksetUser").getWhereValues(new List<WhereQueries> { new WhereQueries { paramName = "UserId", sqlName = "Id" } }).buildSelectQuery();
+            Console.WriteLine(idQuery.ToString());
 
             using (var connection = _dapperContext.createConnection())
             {

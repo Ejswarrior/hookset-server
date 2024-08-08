@@ -1,4 +1,4 @@
-global using Azure.Storage.Blobs
+global using Azure.Storage.Blobs;
 
 using hookset_server;
 using hookset_server.DBHelpers;
