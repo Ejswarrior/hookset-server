@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Configuration;
 using System.Data;
 using System.Data.SqlClient;
+using System.Diagnostics.CodeAnalysis;
 
 namespace hookset_server.models
 {
@@ -25,5 +26,8 @@ namespace hookset_server.models
         [Required]
         [MaxLength(250)]
         public string password { get; set;}
+        [Range(0,1)]
+        [AllowNull]
+        public int? banned { get; set; }
     }
 }
