@@ -30,6 +30,7 @@ namespace hookset_server.Controllers
         [AllowAnonymous]
         public async Task<ActionResult> Login(string email, string password)
         {
+            Console.WriteLine("Hit login route");
             var authenticatedUser = await userDBHelper.getUser(email, null);
             
             if(authenticatedUser == null) return StatusCode(403, "Invalid Credentials");

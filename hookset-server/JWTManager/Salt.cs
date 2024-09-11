@@ -17,6 +17,7 @@ namespace hookset_server.JWTManager
 
         public bool verifiySalt(string password, string saltedPassword) 
         {
+            Console.WriteLine(password);
             return BCrypt.Net.BCrypt.EnhancedVerify(password, saltedPassword, HashType.SHA512);
 
         }
