@@ -1,14 +1,8 @@
 ﻿using Dapper;
 using hookset_server.models;
 using Newtonsoft.Json;
-using System.Collections;
-using System.Text;
-using System.Xml.Linq;
-using System.Text.Json;
-using Microsoft.Extensions.Hosting;
 using hookset_server.QueryBuilders;
-using System;
-using System.Reflection.Metadata;
+
 
 
 namespace hookset_server.DBHelpers
@@ -151,7 +145,7 @@ namespace hookset_server.DBHelpers
         {
             var listPostQuery = "SELECT * FROM Posts LEFT JOIN FishLog ON FishLog.PostId = Posts.Id";
 
-            if (followers != null && followers == false) listPostQuery += " WHERE UserId = @UserId";
+            if (followers != null && followers == false) listPostQuery += " WHERE Posts.UserId = @UserId";
 
             if (followers == true)
             {
@@ -183,12 +177,16 @@ namespace hookset_server.DBHelpers
                     {
                         if (post != null)
                         {
+                            Console.WriteLine("before comments");
                             var postComments = await _commentsDBHelper.getPostComments(post.Id, connection);
                             var postLikes = await connection.QuerySingleAsync<int>(likesQuery, new { PostId = post.Id });
-                            Console.Write(JsonConvert.SerializeObject(postComments));
+                            Console.WriteLine("Before comments");
 
+                            Console.Write(JsonConvert.SerializeObject(postComments));
+                            Console.WriteLine("After comments");
                             var postDto = ConvertToPostDTO(post, postComments.ToList(), postLikes);
 
+                            Console.WriteLine("After converting");
                             postDTOs.Add(postDto);
                         }
                     }

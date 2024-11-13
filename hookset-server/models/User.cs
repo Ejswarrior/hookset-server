@@ -29,5 +29,8 @@ namespace hookset_server.models
         [Range(0,1)]
         [AllowNull]
         public int? banned { get; set; }
+
+        [AllowNull]
+        public string? profilePic {  get; set; }
     }
 }

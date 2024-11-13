@@ -1,6 +1,7 @@
 ﻿using hookset_server.DBHelpers;
 using hookset_server.JWTManager;
 using hookset_server.models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Hosting;
@@ -63,7 +64,6 @@ namespace hookset_server.Controllers
             if (perPage > 100) return StatusCode(500, "Too many items perPage requested");
             var posts = await _postsDBHelper.listPosts(userId, page, perPage, false);
             if (posts == null) return StatusCode(404, "No posts found");
-             
             return Ok(posts);
         }
 

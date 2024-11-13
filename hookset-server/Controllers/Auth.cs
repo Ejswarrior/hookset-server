@@ -6,6 +6,7 @@ using System.Data;
 using System.Data.SqlClient;
 using hookset_server.DBHelpers;
 using Microsoft.AspNetCore.Authorization;
+using System.Text.Json;
 
 namespace hookset_server.Controllers
 {
@@ -43,7 +44,21 @@ namespace hookset_server.Controllers
 
             if(token == null) return Unauthorized();
 
-            return Ok(token);
+            var loginResult = JsonSerializer.Serialize(Ok(new
+            {
+                token = token,
+                userId = authenticatedUser.Id,
+                firstName = authenticatedUser.firstName,
+                lastName = authenticatedUser.lastName,
+            }));
+
+            return Ok(new
+            {
+                token = token,
+                userId = authenticatedUser.Id,
+                firstName = authenticatedUser.firstName,
+                lastName = authenticatedUser.lastName,
+            });
         }
 
         [HttpPost]

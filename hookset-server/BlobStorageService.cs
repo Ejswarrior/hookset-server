@@ -14,7 +14,7 @@ namespace hookset_server
 
         public BlobStorageService(BlobServiceClient blobServiceClient) { 
             _blobServiceClient = blobServiceClient;
-            _containerClient = _blobServiceClient.GetBlobContainerClient("hooket-dev-images");
+            _containerClient = _blobServiceClient.GetBlobContainerClient("hooksetblobcontainer");
         }
 
         public async Task<string> uploadBlob(string fileName, string filePath)
