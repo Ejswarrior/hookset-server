@@ -25,17 +25,21 @@ namespace hookset_server.Controllers
             this._commentsDBHelper = commentsDBHelper;
         }
         [HttpPost]
-        public async Task<ActionResult<Posts>> createPost(Guid userId, createPostDTO postCreationObj)
+        public async Task<ActionResult<Posts>> createPost(Guid userId, createPostDTO postCreationObj, [FromForm] IFormFile imageFile)
         {
             var user = await userDBHelper.getUser(null, userId);
 
             if (user == null) return StatusCode(403, "Not Authorized");
 
-            if (postCreationObj.blobContent.Count > 4) return StatusCode(400, "Only 4 images allowed for a post");
+            var imageFilePath = Path.GetTempFileName();
+            Console.WriteLine(imageFilePath);
 
-            var blobContent = new List<PostImage>();
+            using(var stream = System.IO.File.Create(imageFilePath))
+            {
+                await imageFile.CopyToAsync(stream);
+            }
 
-       
+
 
             var newPost = new insertPostDTO
             {
@@ -48,8 +52,9 @@ namespace hookset_server.Controllers
                 weight =  0,
                 length = 0,
                 fishSpecies = postCreationObj.fishSpecies,
-                blobContent = postCreationObj.blobContent,
+                filePath = imageFilePath,
             };
+
 
             var post = await _postsDBHelper.insertPost(newPost);
 

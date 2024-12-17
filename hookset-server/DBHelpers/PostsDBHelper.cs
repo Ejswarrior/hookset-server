@@ -12,7 +12,7 @@ namespace hookset_server.DBHelpers
         public Task<Posts?> insertPost(insertPostDTO postObj);
         public Task<List<PostDTO>> listPosts(Guid userId, int? pageStart, int? perPage, bool? follower);
         public Task<PostDTO?> getPost(Guid postId);
-        public PostDTO ConvertToPostDTO(Posts postObj, List<CommentDTO> comments, int Likes);
+        public PostDTO ConvertToPostDTO(PostsWithFishLog postObj, List<CommentDTO> comments, int Likes);
         public  Task<Likes?> insertLike(Likes like);
     }
     public class PostsDBHelper: IPostsDBHelper
@@ -40,31 +40,42 @@ namespace hookset_server.DBHelpers
             };
         }
 
-        public PostDTO ConvertToPostDTO(Posts postObj, List<CommentDTO> comments, int Likes) {
+        public PostDTO ConvertToPostDTO(PostsWithFishLog postObj, List<CommentDTO> comments, int Likes) {
             return new PostDTO
             {
                 Id = postObj.Id,
-                userName = postObj.userName,
+                userName = postObj.userName.Trim(),
                 userId = postObj.userId,
                 createdDate = postObj.createdDate,
- 
+                description = postObj.description,
+                length = postObj.length,
+                weight = postObj.weight,
+                bodyOfWaterCaughtIn = postObj.bodyOfWaterCaughtIn,
+                fishSpecies = postObj.fishSpecies,
+                updatedDate = postObj.updatedDate, 
                 comments = comments != null ? comments.ToList() : [],
                 likes = Likes,
-            };
+             };
         }
 
-        public async Task<List<SQLPostImage>> uploadPostImages(Guid postId, List<BlobContentModel> fileData, Guid fishLogId)
+        public async Task<List<SQLPostImage>> uploadPostImages(Guid postId, BlobContentModel fileData, Guid fishLogId)
         {
             var blobContent = new List<SQLPostImage>();
 
-            foreach (var item in fileData)
-            {
+            
+                try
+                {
 
-                var url = await _blobStorageService.uploadBlob(item.fileName, item.filePath);
-                var extension = Path.GetExtension(item.fileName);
+                    var url = await _blobStorageService.uploadBlob(fileData.fileName, fileData.filePath);
+                    var extension = Path.GetExtension(fileData.fileName);
 
-                blobContent.Add(new SQLPostImage{Id = Guid.NewGuid(), PostId = postId, ImageType = $"image/{extension.Remove(0,1)}", ImageUrl = url, FishLogId = fishLogId });
-            }
+                    blobContent.Add(new SQLPostImage { Id = Guid.NewGuid(), PostId = postId, ImageType = $"image/{extension.Remove(0, 1)}", ImageUrl = url, FishLogId = fishLogId });
+                }catch(Exception e)
+                {
+                    Console.WriteLine(e.ToString());
+                }
+
+            
 
             return blobContent;
         }
@@ -72,9 +83,9 @@ namespace hookset_server.DBHelpers
         public async Task<FishLog?> insertFishLog(InsertFishLogDTO fishLogDto)
         {
             using (var connection = _dapperContext.createConnection()) {
-                var createFishLogQuery = new InsertQueryBuilder().addTableName("FishLog").addColumnNames(new[] { "Id", "FishSpecies", "Weight", "Length", "BodyOfWaterCaughtIn", "PostId" }).addParamNames(new[] { "Id", "FishSpecies", "Weight", "Length", "BodyOfWaterCaughtIn", "PostId", "UserId" }).buildInsertQuery(true);
-            var createFishLogParameters = new { Id = Guid.NewGuid(), UserId = fishLogDto.userId, BodyOfWaterCaughtIn = fishLogDto.bodyOfWaterCaughtIn, Weight = fishLogDto.weight ?? null, Length = fishLogDto.length ?? null, FishSpecies = fishLogDto.fishSpecies };
-            var fishLogId = await connection.QuerySingleOrDefaultAsync<Guid>(createFishLogQuery, createFishLogParameters);
+                var createFishLogQuery = new InsertQueryBuilder().addTableName("FishLog").addColumnNames(new[] { "Id", "FishSpecies", "Weight", "Length", "BodyOfWaterCaughtIn", "PostId", "Likes", "Description" }).addParamNames(new[] { "Id", "FishSpecies", "Weight", "Length", "BodyOfWaterCaughtIn", "PostId", "UserId" }).buildInsertQuery(true);
+                var createFishLogParameters = new { Id = Guid.NewGuid(), UserId = fishLogDto.userId, BodyOfWaterCaughtIn = fishLogDto.bodyOfWaterCaughtIn, Weight = fishLogDto.weight ?? null, Length = fishLogDto.length ?? null, FishSpecies = fishLogDto.fishSpecies };
+                var fishLogId = await connection.QuerySingleOrDefaultAsync<Guid>(createFishLogQuery, createFishLogParameters);
 
                 return new FishLog
                 {
@@ -97,7 +108,7 @@ namespace hookset_server.DBHelpers
             Console.Write(JsonConvert.SerializeObject(postObj));
             var newID = Guid.NewGuid();
             var newFishLogId  = Guid.NewGuid();
-            var images = await uploadPostImages(newID, postObj.blobContent, newFishLogId);
+            var images = await uploadPostImages(newID, new BlobContentModel { fileName = $"{postObj.userId}-{newID}"}, newFishLogId);
 
 
 
@@ -107,19 +118,17 @@ namespace hookset_server.DBHelpers
 
                 Console.WriteLine(insertImagesQuery);
                 var createPostParameters = new { Id = newID, UserId = postObj.userId, UserName = postObj.userName, CreatedDate = postObj.createdDate, Likes = 0, Description = postObj.description, UpdatedDate = postObj.updatedDate ?? null };
-                var createFishLogParameters = new { Id = newFishLogId, UserId = postObj.userId, PostId = newID, BodyOfWaterCaughtIn = postObj.bodyOfWaterCaughtIn, Weight = postObj.weight ?? null, Length = postObj.length ?? null, FishSpecies = postObj.fishSpecies ?? null };
+                Console.WriteLine(createPostParameters);
                 var postId = await connection.QuerySingleOrDefaultAsync<Posts>(createPostQuery, createPostParameters);
+                var createFishLogParameters = new { Id = newFishLogId, UserId = postObj.userId, PostId = newID, BodyOfWaterCaughtIn = postObj.bodyOfWaterCaughtIn, Weight = postObj.weight ?? null, Length = postObj.length ?? null, FishSpecies = postObj.fishSpecies ?? null };
                 var fishLogId = await connection.QuerySingleOrDefaultAsync<FishLog>(createFishLogQuery, createFishLogParameters);
                 var postImages = new List<PostImage>();
                 foreach(var image in images)
                 {
                     var postImageId = await connection.QuerySingleOrDefaultAsync<PostImage>(insertImagesQuery, image);
-                    Console.WriteLine(postImageId.ToString());
                     postImages.Add(new PostImage { id = image.Id, fishLogId = image.FishLogId, imageType = image.ImageType, imageUrl = image.ImageUrl, postId = newID });
 
                 }
-                Console.Write(JsonConvert.SerializeObject(postImages));
-
                 var createdPost = ConvertToPost(newID, postObj);
                 return createdPost;
             }
@@ -132,7 +141,7 @@ namespace hookset_server.DBHelpers
             var getPostQuery =  new SelectQueryBuilder().addTableName("Posts").addLeftJoinValues(new[] {"Weight", "FishSpecies", "Length", "BodyOfWaterCaughtIn"}, "FishLog").addLeftJoin("FishLog", "PostId", "Posts.Id").getWhereValues(new List<WhereQueries> { new WhereQueries { paramName = "PostId", sqlName = "Id" } }).buildSelectQuery();
             using (var connection = _dapperContext.createConnection())
             {
-                var post = await connection.QueryFirstOrDefaultAsync<Posts>(getPostQuery, new { PostId = postId});
+                var post = await connection.QueryFirstOrDefaultAsync<PostsWithFishLog>(getPostQuery, new { PostId = postId});
                 if (post == null) return null;
 
                 var postComments = await _commentsDBHelper.getPostComments(postId, connection);
@@ -143,7 +152,7 @@ namespace hookset_server.DBHelpers
 
         private async Task<String> constructListQuery(System.Data.IDbConnection connection , Guid userId, int? pageStart, int? perPage, bool? followers)
         {
-            var listPostQuery = "SELECT * FROM Posts LEFT JOIN FishLog ON FishLog.PostId = Posts.Id";
+            var listPostQuery = "SELECT * FROM Posts FULL OUTER JOIN FishLog on Posts.id = Fishlog.PostId";
 
             if (followers != null && followers == false) listPostQuery += " WHERE Posts.UserId = @UserId";
 
@@ -167,7 +176,7 @@ namespace hookset_server.DBHelpers
                 var listPostQuery = await constructListQuery(connection, userId, pageStart, perPage, followers);  
            
                 Console.WriteLine(listPostQuery);
-                var posts = await connection.QueryAsync<Posts>(listPostQuery, new {UserId = userId, perPage = perPage, pageStart = pageStart });
+                var posts = await connection.QueryAsync<PostsWithFishLog>(listPostQuery, new {UserId = userId, perPage = perPage, pageStart = pageStart });
                 List<PostDTO> postDTOs = new List<PostDTO>();
                 if (posts.Count() == 0) return [];
 
