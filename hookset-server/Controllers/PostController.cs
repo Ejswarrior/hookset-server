@@ -18,26 +18,38 @@ namespace hookset_server.Controllers
         private readonly ICommentsDBHelper _commentsDBHelper;
 
 
-        public PostController( IUserDBHelper userDBHelper, IPostsDBHelper postsDBHelper, ICommentsDBHelper commentsDBHelper)
+        public PostController(IUserDBHelper userDBHelper, IPostsDBHelper postsDBHelper, ICommentsDBHelper commentsDBHelper)
         {
             this.userDBHelper = userDBHelper;
             this._postsDBHelper = postsDBHelper;
             this._commentsDBHelper = commentsDBHelper;
         }
+
+        [HttpPost("images")]
+        public async Task<ActionResult<string>> createPostUpload([FromForm] IFormFile imageFile)
+        {
+            Console.WriteLine("Hit api");
+            Console.WriteLine(imageFile.FileName);
+            var imageFilePath = Path.GetTempFileName();
+
+            using (var stream = System.IO.File.Create(imageFilePath))
+            {
+                await imageFile.CopyToAsync(stream);
+            }
+
+            var postImage= _postsDBHelper.uploadPostImages( new Guid() ,new BlobContentModel { fileName = $"{new Guid()}" });
+
+            return Ok("");
+        }
+
         [HttpPost]
-        public async Task<ActionResult<Posts>> createPost(Guid userId, createPostDTO postCreationObj, [FromForm] IFormFile imageFile)
+        public async Task<ActionResult<Posts>> createPost(Guid userId, createPostDTO postCreationObj)
         {
             var user = await userDBHelper.getUser(null, userId);
 
             if (user == null) return StatusCode(403, "Not Authorized");
 
-            var imageFilePath = Path.GetTempFileName();
-            Console.WriteLine(imageFilePath);
 
-            using(var stream = System.IO.File.Create(imageFilePath))
-            {
-                await imageFile.CopyToAsync(stream);
-            }
 
 
 
@@ -52,7 +64,7 @@ namespace hookset_server.Controllers
                 weight =  0,
                 length = 0,
                 fishSpecies = postCreationObj.fishSpecies,
-                filePath = imageFilePath,
+                filePath = "",
             };
 
 

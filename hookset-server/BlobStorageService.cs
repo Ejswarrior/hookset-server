@@ -23,6 +23,8 @@ namespace hookset_server
 
             var status = await blobClient.UploadAsync(filePath);
 
+            Console.WriteLine(status.ToString());
+
             return blobClient.Uri.AbsoluteUri;
         }
     }

@@ -14,6 +14,8 @@ namespace hookset_server.DBHelpers
         public Task<PostDTO?> getPost(Guid postId);
         public PostDTO ConvertToPostDTO(PostsWithFishLog postObj, List<CommentDTO> comments, int Likes);
         public  Task<Likes?> insertLike(Likes like);
+
+        public Task<List<SQLPostImage>> uploadPostImages(Guid postId, BlobContentModel fileData);
     }
     public class PostsDBHelper: IPostsDBHelper
     {
@@ -58,7 +60,7 @@ namespace hookset_server.DBHelpers
              };
         }
 
-        public async Task<List<SQLPostImage>> uploadPostImages(Guid postId, BlobContentModel fileData, Guid fishLogId)
+        public async Task<List<SQLPostImage>> uploadPostImages(Guid postId, BlobContentModel fileData)
         {
             var blobContent = new List<SQLPostImage>();
 
@@ -69,7 +71,7 @@ namespace hookset_server.DBHelpers
                     var url = await _blobStorageService.uploadBlob(fileData.fileName, fileData.filePath);
                     var extension = Path.GetExtension(fileData.fileName);
 
-                    blobContent.Add(new SQLPostImage { Id = Guid.NewGuid(), PostId = postId, ImageType = $"image/{extension.Remove(0, 1)}", ImageUrl = url, FishLogId = fishLogId });
+                    blobContent.Add(new SQLPostImage { Id = Guid.NewGuid(), PostId = postId, ImageType = $"image/{extension.Remove(0, 1)}", ImageUrl = url });
                 }catch(Exception e)
                 {
                     Console.WriteLine(e.ToString());
@@ -108,7 +110,7 @@ namespace hookset_server.DBHelpers
             Console.Write(JsonConvert.SerializeObject(postObj));
             var newID = Guid.NewGuid();
             var newFishLogId  = Guid.NewGuid();
-            var images = await uploadPostImages(newID, new BlobContentModel { fileName = $"{postObj.userId}-{newID}"}, newFishLogId);
+            var images = await uploadPostImages(newID, new BlobContentModel { fileName = $"{postObj.userId}-{newID}"});
 
 
 
